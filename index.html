@@ -1,0 +1,1155 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>牛马考勤官</title>
+    <link rel="icon" type="image/png" href="i.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif; }
+        body { background: #f4f8fe; padding: 20px 16px; color: #1a2c3e; }
+        .dashboard { max-width: 1400px; margin: 0 auto; }
+        .header { margin-bottom: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+        .title-section h1 { font-size: 1.5rem; font-weight: 600; background: linear-gradient(135deg, #1e466e, #2a6b9e); background-clip: text; -webkit-background-clip: text; color: transparent; }
+        .title-section p { color: #5a6e7c; font-size: 0.8rem; margin-top: 4px; }
+        .action-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+        .btn-secondary { background: white; border: 1px solid #cbd5e1; padding: 6px 14px; border-radius: 40px; font-weight: 500; cursor: pointer; transition: 0.2s; color: #2c3e4e; font-size: 0.8rem; }
+        .btn-secondary:hover { background: #eef2f6; }
+        .btn-danger { background: #fff1f0; border-color: #f0b9b5; color: #c23d2e; }
+        .btn-danger:hover { background: #ffe3e1; }
+        .btn-primary { background: #1f6392; border: none; padding: 8px 18px; border-radius: 40px; font-weight: 600; color: white; cursor: pointer; transition: 0.2s; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary:hover { background: #0f4b70; transform: translateY(-1px); }
+        .btn-sm { padding: 5px 12px; font-size: 0.7rem; }
+        .charts-grid { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; }
+        .chart-card { background: white; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); padding: 14px 16px 18px; border: 1px solid #e9edf2; flex: 1; min-width: 250px; }
+        .chart-card h3 { font-weight: 600; font-size: 1.1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; border-left: 4px solid #3b82f6; padding-left: 10px; }
+        .pie-chart-container { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 8px; }
+        .pie-canvas-wrapper { flex: 1; min-width: 0; height: 200px; }
+        .custom-legend { flex-shrink: 0; background: #f9fbfe; border-radius: 16px; padding: 6px 8px; font-size: 0.7rem; white-space: nowrap; }
+        .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+        .legend-item:last-child { margin-bottom: 0; }
+        .legend-color { width: 12px; height: 12px; border-radius: 12px; flex-shrink: 0; }
+        .legend-label { white-space: nowrap; margin-right: 8px; }
+        .legend-percent { font-weight: 600; color: #2c5a7a; margin-left: auto; }
+        .canvas-container { height: 220px; }
+        .summary-stats { background: white; border-radius: 24px; padding: 14px 20px; margin-bottom: 24px; border: 1px solid #eef2f8; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+        .stats-item { display: flex; align-items: baseline; gap: 12px; background: #fef9e3; padding: 8px 20px; border-radius: 60px; }
+        .stats-label { font-size: 0.9rem; font-weight: 500; color: #b85c00; }
+        .stats-number { font-size: 1.6rem; font-weight: 800; color: #e68a2e; }
+        .chart-range-bar { background: white; border-radius: 24px; margin-bottom: 20px; padding: 10px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border: 1px solid #eef2f8; }
+        .range-group { display: flex; align-items: center; gap: 6px; background: #f8fafc; padding: 4px 12px; border-radius: 40px; flex-wrap: wrap; }
+        .range-group label { font-weight: 500; font-size: 0.75rem; color: #2c5a7a; }
+        .range-group select, .range-group input { padding: 5px 10px; border-radius: 30px; border: 1px solid #dce3ec; font-size: 0.75rem; background: white; }
+        .range-group button { background: #eef2ff; border: none; padding: 5px 12px; border-radius: 30px; cursor: pointer; font-size: 0.7rem; font-weight: 500; }
+        .form-card, .batch-card, .custom-status-card { background: white; border-radius: 24px; margin-bottom: 24px; padding: 16px 20px; border: 1px solid #eef2f8; }
+        .form-title { font-weight: 600; margin-bottom: 14px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+        .form-row, .batch-range, .custom-flex { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+        .input-group { flex: 1; min-width: 130px; }
+        .input-group label { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: #5f7d9c; margin-bottom: 4px; display: block; }
+        input, select { width: 100%; padding: 8px 12px; border-radius: 24px; border: 1px solid #dce3ec; background: white; font-size: 0.85rem; outline: none; }
+        .checkbox-group { display: flex; align-items: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+        .status-list { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .status-chip { background: #f1f5f9; border-radius: 40px; padding: 4px 10px 4px 14px; display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 500; }
+        .status-chip .color-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .delete-status { background: none; border: none; cursor: pointer; color: #9ca3af; font-size: 0.8rem; padding: 0 4px; }
+        .delete-status:hover { color: #dc2626; }
+        .records-section { background: white; border-radius: 24px; padding: 16px 18px; border: 1px solid #eef2f8; }
+        .list-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+        .batch-delete-bar { display: flex; align-items: center; gap: 12px; background: #f9fbfe; padding: 6px 14px; border-radius: 60px; font-size: 0.8rem; }
+        .table-wrapper { overflow-x: auto; border-radius: 18px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; min-width: 650px; }
+        th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #ecf3f9; }
+        th { background: #f9fbfd; font-weight: 600; color: #2c5a7a; }
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 50px; font-weight: 500; font-size: 0.7rem; background: #eef2ff; color: #1e4a76; }
+        .status-badge.holiday-overtime { background: #fbc4c4; color: #a11c1c; }
+        .color-dot-small { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .overtime-badge-small { background: #fef1cf; color: #b85c00; margin-left: 6px; padding: 2px 6px; border-radius: 30px; font-size: 0.65rem; font-weight: 600; }
+        .action-icons i { cursor: pointer; margin: 0 4px; transition: 0.1s; font-size: 1rem; }
+        .action-icons .fa-trash-alt { color: #e74c3c; }
+        .action-icons .fa-trash-alt:hover { color: #c0392b; }
+        .action-icons .fa-edit { color: #7f8c8d; }
+        .action-icons .fa-edit:hover { color: #1f6392; }
+        .action-icons .fa-comment { color: #2ecc71; }
+        .action-icons .fa-comment:hover { color: #27ae60; }
+        .empty-row td { text-align: center; padding: 30px; color: #8ba0b0; }
+        footer { margin-top: 20px; text-align: center; font-size: 0.65rem; color: #8aa0b0; }
+        .toast-message { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.85); color: white; padding: 10px 20px; border-radius: 48px; font-size: 0.85rem; z-index: 2000; opacity: 0; transition: 0.2s; pointer-events: none; }
+        .toast-message.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .custom-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 3000; visibility: hidden; opacity: 0; transition: 0.2s; }
+        .custom-modal-overlay.active { visibility: visible; opacity: 1; }
+        .custom-modal { background: white; max-width: 500px; width: 90%; border-radius: 32px; padding: 20px; text-align: center; box-shadow: 0 25px 40px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.2s; max-height: 85vh; overflow-y: auto; }
+        .custom-modal-overlay.active .custom-modal { transform: scale(1); }
+        .modal-buttons { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+        .help-content, .only-view-content, .remark-content, .account-content { text-align: left; font-size: 0.85rem; line-height: 1.5; }
+        .help-content h4 { margin: 12px 0 6px; color: #1f6392; }
+        .help-content ul { margin-left: 20px; }
+        .date-list { max-height: 200px; overflow-y: auto; background: #f8fafc; border-radius: 16px; padding: 10px; margin-top: 10px; font-size: 0.75rem; }
+        .date-list span { display: inline-block; background: white; padding: 4px 10px; margin: 4px; border-radius: 30px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .export-range-panel { background: white; border-radius: 24px; margin-bottom: 20px; padding: 16px 20px; border: 1px solid #eef2f8; display: none; }
+        .export-range-panel.show { display: block; }
+        .save-chart-popup { position: fixed; background: white; border-radius: 40px; padding: 8px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 4000; display: flex; gap: 16px; font-size: 0.9rem; font-weight: 500; cursor: pointer; }
+        .save-chart-popup button { background: none; border: none; padding: 6px 12px; border-radius: 30px; cursor: pointer; }
+        .save-chart-popup .save-btn { background: #1f6392; color: white; }
+        .save-chart-popup .cancel-btn { background: #eef2f6; color: #2c3e4e; }
+        .account-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        .account-info { flex: 1; }
+        .account-name { font-weight: 600; }
+        .account-position { font-size: 0.7rem; color: #6c8eae; }
+        .account-badge { background: #eef2ff; border-radius: 20px; padding: 2px 8px; font-size: 0.65rem; margin-left: 8px; }
+        .readonly-notice { background: #fff3cd; color: #856404; padding: 8px 16px; border-radius: 24px; margin-bottom: 16px; font-size: 0.8rem; display: flex; align-items: center; gap: 8px; }
+        @media (min-width: 901px) {
+            .charts-grid { flex-wrap: nowrap; }
+            .chart-card { min-width: 0; }
+        }
+        @media (max-width: 900px) {
+            .charts-grid { flex-wrap: wrap; }
+            .pie-chart-container { flex-wrap: wrap; justify-content: center; }
+            .custom-legend { white-space: normal; display: flex; flex-wrap: wrap; gap: 8px; width: 100%; justify-content: center; }
+            .legend-item { margin-bottom: 0; }
+            .canvas-container { height: 200px; }
+        }
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            .header { flex-direction: column; align-items: flex-start; }
+            .action-buttons { width: 100%; justify-content: flex-start; }
+            .range-group { width: 100%; justify-content: space-between; }
+            .form-row, .batch-range, .custom-flex { flex-direction: column; align-items: stretch; }
+            .input-group { min-width: 100%; }
+            .checkbox-group { justify-content: flex-start; }
+            .list-header { flex-direction: column; align-items: stretch; }
+            .batch-delete-bar { justify-content: space-between; }
+            .custom-modal { width: 95%; padding: 16px; }
+            .summary-stats { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <div class="header">
+        <div class="title-section"><h1><i class="fas fa-calendar-alt"></i> 牛马出勤操作台</h1><p>打工人，打工魂</p></div>
+        <div class="action-buttons">
+            <button class="btn-secondary" id="accountBtn"><i class="fas fa-users"></i> 账号</button>
+            <button class="btn-secondary" id="undoBtn"><i class="fas fa-undo-alt"></i> 撤回</button>
+            <button class="btn-secondary" id="openExampleModalBtn"><i class="fas fa-chart-line"></i> 数据预览</button>
+            <button class="btn-secondary" id="onlyViewBtn"><i class="fas fa-eye"></i> 只看</button>
+            <button class="btn-secondary" id="exportAllBtn"><i class="fas fa-download"></i> 全部导出</button>
+            <button class="btn-secondary" id="exportRangeBtn"><i class="fas fa-calendar-range"></i> 局部导出</button>
+            <button class="btn-secondary" id="importBtn"><i class="fas fa-upload"></i> 导入</button>
+            <button class="btn-secondary" id="helpBtn"><i class="fas fa-question-circle"></i> 帮助</button>
+            <button class="btn-secondary btn-danger" id="clearAllBtn"><i class="fas fa-trash-alt"></i> 清空所有</button>
+        </div>
+    </div>
+
+    <div id="exportRangePanel" class="export-range-panel">
+        <div class="form-title"><i class="fas fa-calendar-alt"></i> 选择导出日期范围</div>
+        <div class="form-row">
+            <div class="input-group"><label>起始日期</label><input type="date" id="rangeStartDate"></div>
+            <div class="input-group"><label>结束日期</label><input type="date" id="rangeEndDate"></div>
+            <div><button class="btn-primary" id="confirmRangeExportBtn"><i class="fas fa-check"></i> 确认导出</button></div>
+            <div><button class="btn-secondary" id="cancelRangeExportBtn">取消</button></div>
+        </div>
+    </div>
+
+    <div class="chart-range-bar">
+        <div class="range-group">
+            <label><i class="fas fa-chart-line"></i> 图表视图：</label>
+            <select id="chartRangeType">
+                <option value="month">当月</option><option value="lastMonth">上月</option>
+                <option value="year">当年</option><option value="lastYear">上年</option>
+                <option value="all">全部历史</option>
+                <option value="customMonth">指定年月</option><option value="customYear">指定年份</option>
+            </select>
+        </div>
+        <div class="range-group" id="customMonthGroup" style="display: none;">
+            <label>年月：</label><input type="month" id="customMonthInput"><button id="applyCustomMonthBtn">应用</button>
+        </div>
+        <div class="range-group" id="customYearGroup" style="display: none;">
+            <label>年份：</label><input type="number" id="customYearInput" step="1" placeholder="2026"><button id="applyCustomYearBtn">应用</button>
+        </div>
+        <div class="range-group"><span id="currentRangeLabel" style="font-size:0.7rem; color:#5a6e7c;">当前：当月</span></div>
+        <div class="range-group" id="accountSelectorGroup" style="display: none;">
+            <label><i class="fas fa-user"></i> 账号：</label>
+            <select id="accountSelector"></select>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-card" id="pieChartCard">
+            <h3><i class="fas fa-chart-pie"></i> 出勤构成 (扇形图)</h3>
+            <div class="pie-chart-container">
+                <div class="pie-canvas-wrapper"><canvas id="pieChartCanvas"></canvas></div>
+                <div id="pieLegend" class="custom-legend"></div>
+            </div>
+            <div id="mergeChartHint" style="font-size:0.7rem; color:#856404; margin-top:8px; display:none;">📊 合并视图展示所有账号汇总数据，详细归属请查看明细表</div>
+        </div>
+        <div class="chart-card" id="barChartCard">
+            <h3><i class="fas fa-chart-bar"></i> 状态统计 (柱状图)</h3>
+            <div class="canvas-container"><canvas id="barChartCanvas"></canvas></div>
+        </div>
+    </div>
+
+    <div class="summary-stats">
+        <div class="stats-item">
+            <i class="fas fa-clock" style="font-size: 1.2rem; color: #e68a2e;"></i>
+            <span class="stats-label">累计加班天数</span>
+            <span class="stats-number" id="totalOvertimeSpan">0</span>
+        </div>
+    </div>
+
+    <div class="form-card">
+        <div class="form-title"><i class="fas fa-pen-fancy"></i> 记录日志</div>
+        <div class="form-row">
+            <div class="input-group"><label>日期</label><input type="date" id="recordDate"></div>
+            <div class="input-group"><label>主要状态</label><select id="mainStatus"></select></div>
+            <div class="checkbox-group"><label><input type="checkbox" id="overtimeCheckbox"> <i class="fas fa-fire"></i> 加班</label></div>
+            <div><button class="btn-primary" id="saveRecordBtn"><i class="fas fa-save"></i> 保存记录</button><button class="btn-secondary cancel-edit" id="cancelEditBtn" style="display: none;">取消编辑</button></div>
+        </div>
+    </div>
+
+    <div class="batch-card">
+        <div class="form-title"><i class="fas fa-layer-group"></i> 批量记录</div>
+        <div class="batch-range">
+            <div class="input-group"><label>起始日期</label><input type="date" id="batchStartDate"></div>
+            <div class="input-group"><label>结束日期</label><input type="date" id="batchEndDate"></div>
+            <div class="input-group"><label>批量状态</label><select id="batchStatusSelect"></select></div>
+            <div class="checkbox-group"><label><input type="checkbox" id="batchOvertime"> 全部加班</label></div>
+            <div><button class="btn-primary" id="batchAddBtn"><i class="fas fa-plus-circle"></i> 批量编辑</button></div>
+        </div>
+    </div>
+
+    <div class="custom-status-card">
+        <div class="form-title"><i class="fas fa-palette"></i> 自定义出勤状态</div>
+        <div class="custom-flex">
+            <div class="input-group"><label>状态名称</label><input type="text" id="newStatusName" placeholder="例如: 出差"></div>
+            <div class="input-group"><label>颜色</label><input type="color" id="newStatusColor" value="#3b82f6"></div>
+            <div><button class="btn-primary btn-sm" id="addCustomStatusBtn"><i class="fas fa-plus"></i> 添加</button></div>
+        </div>
+        <div id="customStatusList" class="status-list"></div>
+        <div class="checkbox-group" style="margin-top: 10px;"><i class="fas fa-info-circle"></i><span style="font-size:0.7rem;">默认状态不可删除；自定义状态可删除，若删除则原自定义状态记录将变为“不明”</span></div>
+    </div>
+
+    <div class="records-section">
+        <div class="list-header">
+            <div><i class="fas fa-list-ul"></i> <strong>考勤明细表</strong> <span id="tableRangeHint" style="font-size:0.7rem; color:#6c8eae; margin-left:8px;"></span></div>
+            <div class="batch-delete-bar" id="batchDeleteBar">
+                <i class="fas fa-check-double"></i><label><input type="checkbox" id="selectAllCheckbox"> 全选</label>
+                <span id="selectedCountSpan">0条选中</span>
+                <button class="btn-secondary" id="batchDeleteBtn" style="background:#fee2e2;"><i class="fas fa-trash-alt"></i> 批量删除</button>
+            </div>
+        </div>
+        <div id="mergeReadonlyNotice" class="readonly-notice" style="display: none;">
+            <i class="fas fa-info-circle"></i> 合并视图下仅可查看，如需编辑请切换至具体账号
+        </div>
+        <div class="table-wrapper">
+            <table id="recordsTable">
+                <thead><tr><th style="width:40px"></th><th>日期</th><th>主要状态</th><th>加班</th><th>所属账号</th><th>操作</th></tr></thead>
+                <tbody id="recordsTbody"><tr class="empty-row"><td colspan="6">暂无记录 ✨</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+    <footer>DO ONLINE系列出品 vison: 2.1.4</footer>
+</div>
+
+<div id="toastContainer" class="toast-message"></div>
+<div id="customModal" class="custom-modal-overlay"><div class="custom-modal"><i class="fas fa-exclamation-triangle"></i><p id="modalMessage">确认操作？</p><div class="modal-buttons"><button id="modalConfirmBtn" class="modal-confirm">确认</button><button id="modalCancelBtn" class="modal-cancel">取消</button></div></div></div>
+
+<div id="remarkModal" class="custom-modal-overlay">
+    <div class="custom-modal">
+        <i class="fas fa-comment" style="font-size: 2rem; color: #1f6392;"></i>
+        <h3>📝 备注信息</h3>
+        <div class="remark-content">
+            <textarea id="remarkInput" rows="4" style="width:100%; padding:10px; border-radius:16px; border:1px solid #dce3ec; margin-top:10px;" placeholder="输入备注内容..."></textarea>
+        </div>
+        <div class="modal-buttons">
+            <button id="saveRemarkBtn" class="modal-confirm">保存</button>
+            <button id="closeRemarkBtn" class="modal-cancel">取消</button>
+        </div>
+    </div>
+</div>
+
+<div id="helpModal" class="custom-modal-overlay">
+    <div class="custom-modal">
+        <i class="fas fa-life-ring" style="font-size: 2rem; color: #1f6392;"></i>
+        <h3>📘 帮助中心</h3>
+        <div class="help-content">
+            <h4>📝 录入与编辑</h4>
+            <ul><li>选择日期、状态，并确定是否勾选“加班”后点击“保存记录”即可添加或覆盖当日记录。</li><li>点击表格中的编辑图标可修改已有记录。</li></ul>
+            <h4>⚡ 批量操作</h4>
+            <ul><li>在“批量记录”中设置起止日期、状态和是否加班，一键批量编辑。</li><li>勾选表格左侧复选框，可使用“批量删除”或全选删除。</li></ul>
+            <h4>🎨 自定义状态</h4>
+            <ul><li>可添加自定义状态并选择颜色。如果删除自定义状态，相关记录将会自动变为“不明”。</li></ul>
+            <h4>📊 图表与视图</h4>
+            <ul><li>顶部图表控制栏可切换当月、上月、当年、上年、全部历史或指定年月/年份。</li><li>扇形图右侧图例直接显示百分比，柱状图展示天数分布，明细表同步显示该范围内的记录。</li><li>累计加班天数独立显示在图表下方。</li></ul>
+            <h4>👥 多账号功能</h4>
+            <ul><li>点击“账号”按钮可添加/删除/编辑账号，每个账号独立存储考勤数据。</li><li>可切换查看单个账号或合并展示所有账号数据。</li><li>合并展示时，明细表会显示每条记录所属的账号，方便对比不同账号的出勤情况。</li><li>第一个账号自动成为默认账号，可修改默认账号。</li><li>原有单用户数据会在创建第一个账号时自动迁移（可修改）。</li></ul>
+            <h4>💾 导入/导出</h4>
+            <ul><li>“导出”可导出当前账号全部数据（兼容旧格式）或导出全部账号包。</li><li>“导出范围”可导出当前账号指定日期范围内的数据（旧格式）。</li><li>“导入”支持导入新、旧格式文件或账号包，可合并或覆盖。</li></ul>
+            <h4>🔍 “只看”功能</h4>
+            <ul><li>点击“只看”按钮，选择某个状态或“加班”条件，系统会在当前图表范围内统计并列出日期。</li></ul>
+            <h4>📸 保存图表为图片</h4>
+            <ul><li>长按或右键图表区域会弹出“保存为图片”按钮，点击后可将整个图表保存为图片。</li></ul>
+            <h4>↩️ 撤销</h4>
+            <ul><li>“撤回”可撤销上一步操作（最多50步），支持多账号独立历史。</li></ul>
+            <h4>📊 数据预览</h4>
+            <ul><li>点击“数据预览”可以查看模拟数据统计，不影响真实数据。</li></ul>
+        </div>
+        <div class="modal-buttons">
+            <button id="closeHelpBtn" class="modal-confirm">关闭</button>
+        </div>
+    </div>
+</div>
+
+<div id="onlyViewModal" class="custom-modal-overlay"><div class="custom-modal"><i class="fas fa-eye" style="font-size: 2rem; color: #1f6392;"></i><h3>只看筛选</h3><div class="only-view-content"><div class="input-group" style="margin-bottom: 15px;"><label>筛选条件</label><select id="onlyViewType"><option value="status">按出勤状态</option><option value="overtime">只看加班</option></select></div><div class="input-group" id="statusSelectGroup" style="margin-bottom: 15px;"><label>选择状态</label><select id="onlyViewStatus"></select></div><div id="onlyViewResult"><p><strong>总天数：</strong><span id="onlyViewTotal">0</span> 天</p><p><strong>具体日期：</strong></p><div id="onlyViewDateList" class="date-list"></div></div></div><div class="modal-buttons"><button id="closeOnlyViewBtn" class="modal-confirm">关闭</button></div></div></div>
+
+<div id="exampleModal" class="custom-modal-overlay"><div class="custom-modal" style="max-width: 700px;"><i class="fas fa-chart-simple" style="font-size: 2rem; color: #1f6392;"></i><h3>📊 示例数据预览</h3><p style="font-size:0.8rem;">以下为模拟数据展示，不会影响您已保存的记录</p><div class="example-charts" style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin: 16px 0;"><div class="example-chart-box" style="flex:1; min-width:160px;"><canvas id="examplePieCanvas" width="200" height="150"></canvas></div><div class="example-chart-box" style="flex:1; min-width:160px;"><canvas id="exampleBarCanvas" width="200" height="150"></canvas></div></div><div style="text-align:left; background:#f8fafc; border-radius: 20px; padding: 12px; margin: 12px 0; max-height: 200px; overflow: auto;"><table class="example-table" style="width:100%; font-size:0.7rem;"><thead><tr><th>日期</th><th>状态</th><th>加班</th></tr></thead><tbody id="exampleTableBody"></tbody></table></div><div class="modal-buttons"><button id="closeExampleModalBtn" class="modal-confirm">关闭</button></div></div></div>
+
+<div id="accountModal" class="custom-modal-overlay">
+    <div class="custom-modal" style="max-width: 550px;">
+        <i class="fas fa-users" style="font-size: 2rem; color: #1f6392;"></i>
+        <h3>👥 账号管理</h3>
+        <div class="account-content">
+            <div id="accountList" style="max-height: 300px; overflow-y: auto; margin-bottom: 16px;"></div>
+            <div class="form-row" style="margin-bottom: 8px;">
+                <div class="input-group"><label>姓名</label><input type="text" id="newAccountName" placeholder="张三"></div>
+                <div class="input-group"><label>岗位</label><input type="text" id="newAccountPosition" placeholder="产品经理"></div>
+                <div><button class="btn-primary btn-sm" id="addAccountBtn"><i class="fas fa-plus"></i> 添加</button></div>
+            </div>
+            <p style="font-size:0.7rem; color:#6c8eae;">提示：切换账号可查看不同数据，“合并展示”将汇总所有账号数据并标注来源。</p>
+        </div>
+        <div class="modal-buttons">
+            <button id="closeAccountBtn" class="modal-confirm">关闭</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- 多账号核心数据结构 ----------
+    let accounts = [];
+    let currentAccountId = null;
+    let mergeView = false;
+    let userData = {};
+    let singleAttendanceDB = {};
+    let singleCustomStatuses = [];
+    let singleHistoryStack = [];
+    let singleHistoryPointer = -1;
+    
+    // 当前展示的数据（根据模式自动指向）
+    let currentAttendanceDB = {};      // 普通模式下为 { date: { mainStatus, overtime, remark } }；合并模式下为 { date: { mainStatus, overtime, remark, sourceAccountId } }
+    let currentCustomStatuses = [];
+    let currentHistoryStack = [];
+    let currentHistoryPointer = -1;
+    
+    function saveFullState() {
+        const state = {
+            multiMode: accounts.length > 0,
+            accounts: accounts,
+            currentAccountId: currentAccountId,
+            mergeView: mergeView,
+            userData: userData,
+            single: {
+                attendanceDB: singleAttendanceDB,
+                customStatuses: singleCustomStatuses,
+                historyStack: singleHistoryStack,
+                historyPointer: singleHistoryPointer
+            }
+        };
+        localStorage.setItem("attendance_multi_v1", JSON.stringify(state));
+    }
+    
+    function loadFullState() {
+        const stored = localStorage.getItem("attendance_multi_v1");
+        if (!stored) {
+            const oldDB = localStorage.getItem("attendance_records_v5");
+            const oldCustom = localStorage.getItem("custom_statuses_v4");
+            if (oldDB || oldCustom) {
+                singleAttendanceDB = oldDB ? JSON.parse(oldDB) : {};
+                singleCustomStatuses = oldCustom ? JSON.parse(oldCustom) : [];
+                singleHistoryStack = [{ attendanceDB: JSON.parse(JSON.stringify(singleAttendanceDB)), customStatuses: JSON.parse(JSON.stringify(singleCustomStatuses)) }];
+                singleHistoryPointer = 0;
+                saveFullState();
+            }
+            return;
+        }
+        const data = JSON.parse(stored);
+        accounts = data.accounts || [];
+        currentAccountId = data.currentAccountId;
+        mergeView = data.mergeView || false;
+        userData = data.userData || {};
+        if (data.single) {
+            singleAttendanceDB = data.single.attendanceDB || {};
+            singleCustomStatuses = data.single.customStatuses || [];
+            singleHistoryStack = data.single.historyStack || [{ attendanceDB: JSON.parse(JSON.stringify(singleAttendanceDB)), customStatuses: JSON.parse(JSON.stringify(singleCustomStatuses)) }];
+            singleHistoryPointer = data.single.historyPointer !== undefined ? data.single.historyPointer : 0;
+        }
+        for (let acc of accounts) {
+            if (!userData[acc.id]) {
+                userData[acc.id] = {
+                    attendanceDB: {},
+                    customStatuses: [],
+                    historyStack: [{ attendanceDB: {}, customStatuses: [] }],
+                    historyPointer: 0
+                };
+            }
+        }
+        applyCurrentView();
+    }
+    
+    function applyCurrentView() {
+        if (accounts.length === 0) {
+            currentAttendanceDB = singleAttendanceDB;
+            currentCustomStatuses = singleCustomStatuses;
+            currentHistoryStack = singleHistoryStack;
+            currentHistoryPointer = singleHistoryPointer;
+            document.getElementById("accountSelectorGroup").style.display = "none";
+            document.getElementById("mergeChartHint").style.display = "none";
+        } else {
+            document.getElementById("accountSelectorGroup").style.display = "flex";
+            const selector = document.getElementById("accountSelector");
+            let options = '<option value="merge">📊 合并展示 (只读)</option>';
+            for (let acc of accounts) {
+                options += `<option value="${acc.id}" ${currentAccountId === acc.id && !mergeView ? 'selected' : ''}>${escapeHtml(acc.name)} (${escapeHtml(acc.position)})${acc.isDefault ? ' ★' : ''}</option>`;
+            }
+            selector.innerHTML = options;
+            if (mergeView) {
+                selector.value = "merge";
+                // 合并所有账号数据，并记录来源账号
+                const mergedDB = {};
+                const mergedCustom = [];
+                for (let acc of accounts) {
+                    const data = userData[acc.id];
+                    if (data) {
+                        for (let [date, rec] of Object.entries(data.attendanceDB)) {
+                            // 如果同一天有多个账号的记录，保留最早遇到的那个（实际中同一天不同账号记录不冲突，但合并时直接覆盖也无妨）
+                            // 为了显示来源，存储 sourceAccountId
+                            mergedDB[date] = {
+                                mainStatus: rec.mainStatus,
+                                overtime: rec.overtime,
+                                remark: rec.remark,
+                                sourceAccountId: acc.id
+                            };
+                        }
+                        for (let cs of data.customStatuses) {
+                            if (!mergedCustom.find(c => c.name === cs.name)) mergedCustom.push(cs);
+                        }
+                    }
+                }
+                currentAttendanceDB = mergedDB;
+                currentCustomStatuses = mergedCustom;
+                currentHistoryStack = [];
+                currentHistoryPointer = -1;
+                document.getElementById("mergeChartHint").style.display = "block";
+            } else if (currentAccountId && userData[currentAccountId]) {
+                const data = userData[currentAccountId];
+                currentAttendanceDB = data.attendanceDB;
+                currentCustomStatuses = data.customStatuses;
+                currentHistoryStack = data.historyStack;
+                currentHistoryPointer = data.historyPointer;
+                document.getElementById("mergeChartHint").style.display = "none";
+            } else if (accounts.length > 0) {
+                currentAccountId = accounts[0].id;
+                const data = userData[currentAccountId];
+                currentAttendanceDB = data.attendanceDB;
+                currentCustomStatuses = data.customStatuses;
+                currentHistoryStack = data.historyStack;
+                currentHistoryPointer = data.historyPointer;
+                mergeView = false;
+                document.getElementById("mergeChartHint").style.display = "none";
+            }
+        }
+        const isReadonly = (accounts.length > 0 && mergeView);
+        setReadonlyMode(isReadonly);
+        rebuildSelects();
+        renderCustomStatusList();
+        updateAllChartsAndTable();
+    }
+    
+    function setReadonlyMode(readonly) {
+        const elements = [
+            '#saveRecordBtn', '#cancelEditBtn', '#batchAddBtn', '#addCustomStatusBtn',
+            '#clearAllBtn', '#batchDeleteBtn', '#selectAllCheckbox', '#recordDate',
+            '#mainStatus', '#overtimeCheckbox', '#batchStartDate', '#batchEndDate',
+            '#batchStatusSelect', '#batchOvertime', '#newStatusName', '#newStatusColor'
+        ];
+        elements.forEach(sel => {
+            const el = document.querySelector(sel);
+            if (el) el.disabled = readonly;
+        });
+        const batchBar = document.getElementById('batchDeleteBar');
+        if (batchBar) batchBar.style.display = readonly ? 'none' : 'flex';
+        document.querySelectorAll('.delete-status').forEach(btn => {
+            btn.style.pointerEvents = readonly ? 'none' : 'auto';
+            btn.style.opacity = readonly ? '0.5' : '1';
+        });
+        const notice = document.getElementById('mergeReadonlyNotice');
+        if (notice) notice.style.display = readonly ? 'flex' : 'none';
+        if (readonly && currentEditDate) exitEditMode();
+    }
+    
+    function pushToHistory() {
+        if (accounts.length === 0) {
+            const snapshot = { attendanceDB: JSON.parse(JSON.stringify(singleAttendanceDB)), customStatuses: JSON.parse(JSON.stringify(singleCustomStatuses)) };
+            if (singleHistoryPointer < singleHistoryStack.length - 1) singleHistoryStack = singleHistoryStack.slice(0, singleHistoryPointer + 1);
+            singleHistoryStack.push(snapshot);
+            if (singleHistoryStack.length > 50) singleHistoryStack.shift();
+            singleHistoryPointer = singleHistoryStack.length - 1;
+            saveFullState();
+        } else if (!mergeView && currentAccountId) {
+            const data = userData[currentAccountId];
+            const snapshot = { attendanceDB: JSON.parse(JSON.stringify(data.attendanceDB)), customStatuses: JSON.parse(JSON.stringify(data.customStatuses)) };
+            if (data.historyPointer < data.historyStack.length - 1) data.historyStack = data.historyStack.slice(0, data.historyPointer + 1);
+            data.historyStack.push(snapshot);
+            if (data.historyStack.length > 50) data.historyStack.shift();
+            data.historyPointer = data.historyStack.length - 1;
+            saveFullState();
+        }
+    }
+    
+    function undo() {
+        if (accounts.length === 0) {
+            if (singleHistoryPointer <= 0) { showToast("没有更早的操作记录了", 1200); return false; }
+            singleHistoryPointer--;
+            const snapshot = singleHistoryStack[singleHistoryPointer];
+            singleAttendanceDB = JSON.parse(JSON.stringify(snapshot.attendanceDB));
+            singleCustomStatuses = JSON.parse(JSON.stringify(snapshot.customStatuses));
+            saveFullState();
+            applyCurrentView();
+            showToast("已撤回", 1200);
+            return true;
+        } else if (!mergeView && currentAccountId) {
+            const data = userData[currentAccountId];
+            if (data.historyPointer <= 0) { showToast("没有更早的操作记录了", 1200); return false; }
+            data.historyPointer--;
+            const snapshot = data.historyStack[data.historyPointer];
+            data.attendanceDB = JSON.parse(JSON.stringify(snapshot.attendanceDB));
+            data.customStatuses = JSON.parse(JSON.stringify(snapshot.customStatuses));
+            saveFullState();
+            applyCurrentView();
+            showToast("已撤回", 1200);
+            return true;
+        } else {
+            showToast("合并视图下无法撤销", 1200);
+            return false;
+        }
+    }
+    
+    function recordAndExecute(actionFn) {
+        if (mergeView) { showToast("合并视图下无法修改数据", 1200); return; }
+        pushToHistory();
+        actionFn();
+        saveFullState();
+        applyCurrentView();
+    }
+    
+    // 账号管理
+    function openAccountModal() { renderAccountList(); document.getElementById("accountModal").classList.add("active"); }
+    function renderAccountList() {
+        const container = document.getElementById("accountList");
+        if (!container) return;
+        container.innerHTML = accounts.map(acc => `
+            <div class="account-item">
+                <div class="account-info">
+                    <div class="account-name">${escapeHtml(acc.name)} <span class="account-position">${escapeHtml(acc.position)}</span>${acc.isDefault ? '<span class="account-badge">默认</span>' : ''}</div>
+                </div>
+                <div>
+                    <button class="btn-secondary btn-sm" data-id="${acc.id}" data-action="setDefault">设为默认</button>
+                    <button class="btn-secondary btn-sm" data-id="${acc.id}" data-action="switch">切换</button>
+                    <button class="btn-secondary btn-sm" data-id="${acc.id}" data-action="edit">编辑</button>
+                    <button class="btn-danger btn-sm" data-id="${acc.id}" data-action="delete">删除</button>
+                </div>
+            </div>
+        `).join('');
+        document.querySelectorAll("[data-action]").forEach(btn => {
+            btn.addEventListener("click", async (e) => {
+                const id = btn.getAttribute("data-id");
+                const action = btn.getAttribute("data-action");
+                const acc = accounts.find(a => a.id === id);
+                if (action === "setDefault") {
+                    for (let a of accounts) a.isDefault = (a.id === id);
+                    saveFullState();
+                    renderAccountList();
+                    showToast("默认账号已更新", 1000);
+                } else if (action === "switch") {
+                    currentAccountId = id;
+                    mergeView = false;
+                    saveFullState();
+                    applyCurrentView();
+                    closeAccountModal();
+                    showToast(`已切换到 ${acc.name}`, 1000);
+                } else if (action === "edit") {
+                    const newName = prompt("输入新姓名", acc.name);
+                    if (newName) acc.name = newName;
+                    const newPos = prompt("输入新岗位", acc.position);
+                    if (newPos) acc.position = newPos;
+                    saveFullState();
+                    renderAccountList();
+                    applyCurrentView();
+                } else if (action === "delete") {
+                    if (accounts.length === 1) { showToast("至少保留一个账号", 1000); return; }
+                    if (await showConfirm(`删除账号“${acc.name}”及其所有数据？`)) {
+                        delete userData[id];
+                        accounts = accounts.filter(a => a.id !== id);
+                        if (currentAccountId === id) {
+                            currentAccountId = accounts[0].id;
+                            mergeView = false;
+                        }
+                        saveFullState();
+                        applyCurrentView();
+                        renderAccountList();
+                    }
+                }
+            });
+        });
+    }
+    function addAccount() {
+        const name = document.getElementById("newAccountName").value.trim();
+        const position = document.getElementById("newAccountPosition").value.trim();
+        if (!name || !position) { showToast("请填写姓名和岗位", 1000); return; }
+        const id = Date.now().toString();
+        const isFirst = accounts.length === 0;
+        accounts.push({ id, name, position, isDefault: isFirst });
+        userData[id] = {
+            attendanceDB: {},
+            customStatuses: [],
+            historyStack: [{ attendanceDB: {}, customStatuses: [] }],
+            historyPointer: 0
+        };
+        if (isFirst && (Object.keys(singleAttendanceDB).length > 0 || singleCustomStatuses.length > 0)) {
+            userData[id].attendanceDB = JSON.parse(JSON.stringify(singleAttendanceDB));
+            userData[id].customStatuses = JSON.parse(JSON.stringify(singleCustomStatuses));
+            userData[id].historyStack = [{ attendanceDB: JSON.parse(JSON.stringify(singleAttendanceDB)), customStatuses: JSON.parse(JSON.stringify(singleCustomStatuses)) }];
+            userData[id].historyPointer = 0;
+            singleAttendanceDB = {};
+            singleCustomStatuses = [];
+            singleHistoryStack = [{ attendanceDB: {}, customStatuses: [] }];
+            singleHistoryPointer = 0;
+        }
+        currentAccountId = id;
+        mergeView = false;
+        saveFullState();
+        applyCurrentView();
+        document.getElementById("newAccountName").value = "";
+        document.getElementById("newAccountPosition").value = "";
+        renderAccountList();
+        showToast(`账号“${name}”已添加`, 1000);
+    }
+    function closeAccountModal() { document.getElementById("accountModal").classList.remove("active"); }
+    
+    // 导出/导入
+    async function exportData() {
+        if (accounts.length === 0) {
+            const dataStr = JSON.stringify({ attendanceDB: singleAttendanceDB, customStatuses: singleCustomStatuses }, null, 2);
+            downloadJson(dataStr, `attendance_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`);
+            showToast("导出成功", 1500);
+        } else {
+            const choice = await showConfirmWithOptions("导出选项", "导出当前账号（兼容旧格式）", "导出全部账号", "取消");
+            if (choice === 1) {
+                if (mergeView) { showToast("请先切换到具体账号再导出", 1500); return; }
+                const data = userData[currentAccountId];
+                const dataStr = JSON.stringify({ attendanceDB: data.attendanceDB, customStatuses: data.customStatuses }, null, 2);
+                downloadJson(dataStr, `attendance_${accounts.find(a=>a.id===currentAccountId).name}.json`);
+            } else if (choice === 2) {
+                const exportAll = {};
+                for (let acc of accounts) {
+                    exportAll[acc.id] = { name: acc.name, position: acc.position, data: userData[acc.id] };
+                }
+                const dataStr = JSON.stringify({ type: "all", accounts: exportAll }, null, 2);
+                downloadJson(dataStr, `attendance_all_accounts.json`);
+            }
+        }
+    }
+    function showExportRangePanel() {
+        if (accounts.length > 0 && mergeView) {
+            showToast("合并视图下无法导出范围，请先切换至具体账号", 1500);
+            return;
+        }
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
+        const lastDay = new Date(today.getFullYear(), today.getMonth()+1, 0).toISOString().slice(0,10);
+        document.getElementById("rangeStartDate").value = firstDay;
+        document.getElementById("rangeEndDate").value = lastDay;
+        document.getElementById("exportRangePanel").classList.add("show");
+    }
+    function hideExportRangePanel() { document.getElementById("exportRangePanel").classList.remove("show"); }
+    function confirmRangeExport() {
+        const start = document.getElementById("rangeStartDate").value;
+        const end = document.getElementById("rangeEndDate").value;
+        if (!start || !end) { showToast("请填写完整的起止日期", 1000); return; }
+        if (start > end) { showToast("起始日期不能大于结束日期", 1000); return; }
+        let sourceDB;
+        if (accounts.length === 0) {
+            sourceDB = singleAttendanceDB;
+        } else {
+            if (mergeView) { showToast("合并视图下无法导出范围", 1000); return; }
+            sourceDB = userData[currentAccountId].attendanceDB;
+        }
+        const filtered = {};
+        for (let date in sourceDB) {
+            if (date >= start && date <= end) filtered[date] = sourceDB[date];
+        }
+        if (Object.keys(filtered).length === 0) { showToast("所选范围内无数据", 1000); return; }
+        const exportObj = { attendanceDB: filtered, customStatuses: accounts.length === 0 ? singleCustomStatuses : userData[currentAccountId].customStatuses };
+        const dataStr = JSON.stringify(exportObj, null, 2);
+        downloadJson(dataStr, `attendance_${start}_to_${end}.json`);
+        showToast(`导出范围数据 (${Object.keys(filtered).length}条) 成功`, 1500);
+        hideExportRangePanel();
+    }
+    async function importData() {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".json";
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                try {
+                    const imported = JSON.parse(evt.target.result);
+                    if (imported.type === "all") {
+                        if (accounts.length === 0) {
+                            showToast("请先创建账号再导入多账号包", 1500);
+                            return;
+                        }
+                        const mergeMode = await showConfirm("导入多账号包：确认合并（覆盖同名账号），取消完全替换现有账号列表");
+                        if (mergeMode) {
+                            for (let [id, accData] of Object.entries(imported.accounts)) {
+                                let existing = accounts.find(a => a.id === id);
+                                if (existing) {
+                                    existing.name = accData.name;
+                                    existing.position = accData.position;
+                                    userData[id] = accData.data;
+                                } else {
+                                    accounts.push({ id, name: accData.name, position: accData.position, isDefault: false });
+                                    userData[id] = accData.data;
+                                }
+                            }
+                        } else {
+                            accounts = [];
+                            for (let [id, accData] of Object.entries(imported.accounts)) {
+                                accounts.push({ id, name: accData.name, position: accData.position, isDefault: false });
+                                userData[id] = accData.data;
+                            }
+                            if (accounts.length > 0) accounts[0].isDefault = true;
+                            currentAccountId = accounts[0].id;
+                            mergeView = false;
+                        }
+                        saveFullState();
+                        applyCurrentView();
+                        showToast("多账号包导入成功", 1500);
+                        return;
+                    }
+                    let attendanceData = imported.attendanceDB || (imported.attendanceDB === undefined ? null : imported);
+                    let customData = imported.customStatuses || (imported.customStatuses === undefined ? null : imported);
+                    if (!attendanceData && !customData) throw new Error("无法识别的文件格式");
+                    if (accounts.length === 0) {
+                        if (attendanceData) singleAttendanceDB = attendanceData;
+                        if (customData) singleCustomStatuses = customData;
+                        singleHistoryStack = [{ attendanceDB: JSON.parse(JSON.stringify(singleAttendanceDB)), customStatuses: JSON.parse(JSON.stringify(singleCustomStatuses)) }];
+                        singleHistoryPointer = 0;
+                        saveFullState();
+                        applyCurrentView();
+                        showToast("导入成功", 1500);
+                    } else {
+                        const targetAccountId = await showAccountSelection("选择导入到的账号");
+                        if (!targetAccountId) return;
+                        const targetData = userData[targetAccountId];
+                        const mergeMode = await showConfirm("导入模式：确认合并（覆盖相同日期），取消完全覆盖");
+                        if (mergeMode) {
+                            if (attendanceData) Object.assign(targetData.attendanceDB, attendanceData);
+                            if (customData) {
+                                for (let cs of customData) {
+                                    if (!targetData.customStatuses.find(c => c.name === cs.name)) targetData.customStatuses.push(cs);
+                                }
+                            }
+                        } else {
+                            if (attendanceData) targetData.attendanceDB = attendanceData;
+                            if (customData) targetData.customStatuses = customData;
+                        }
+                        targetData.historyStack = [{ attendanceDB: JSON.parse(JSON.stringify(targetData.attendanceDB)), customStatuses: JSON.parse(JSON.stringify(targetData.customStatuses)) }];
+                        targetData.historyPointer = 0;
+                        saveFullState();
+                        applyCurrentView();
+                        showToast("导入成功", 1500);
+                    }
+                } catch (err) { showToast("导入失败：" + err.message, 1500); }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+    async function showAccountSelection(promptMsg) {
+        return new Promise(resolve => {
+            const modal = document.getElementById("customModal");
+            document.getElementById("modalMessage").innerHTML = `${promptMsg}<br><select id="tempAccountSelect">${accounts.map(a => `<option value="${a.id}">${a.name} (${a.position})</option>`).join('')}</select>`;
+            modal.classList.add("active");
+            const confirm = () => {
+                const selected = document.getElementById("tempAccountSelect").value;
+                modal.classList.remove("active");
+                cleanup();
+                resolve(selected);
+            };
+            const cancel = () => {
+                modal.classList.remove("active");
+                cleanup();
+                resolve(null);
+            };
+            const cleanup = () => {
+                confirmBtn.removeEventListener("click", confirm);
+                cancelBtn.removeEventListener("click", cancel);
+            };
+            const confirmBtn = document.getElementById("modalConfirmBtn");
+            const cancelBtn = document.getElementById("modalCancelBtn");
+            confirmBtn.addEventListener("click", confirm, { once: true });
+            cancelBtn.addEventListener("click", cancel, { once: true });
+        });
+    }
+    async function showConfirmWithOptions(title, opt1, opt2, opt3) {
+        return new Promise(resolve => {
+            const modal = document.getElementById("customModal");
+            document.getElementById("modalMessage").innerHTML = `${title}<br><div style="margin-top:10px;"><button id="opt1Btn" class="btn-primary" style="margin:5px;">${opt1}</button><button id="opt2Btn" class="btn-primary" style="margin:5px;">${opt2}</button><button id="opt3Btn" class="btn-secondary">${opt3}</button></div>`;
+            modal.classList.add("active");
+            const opt1Btn = document.getElementById("opt1Btn");
+            const opt2Btn = document.getElementById("opt2Btn");
+            const opt3Btn = document.getElementById("opt3Btn");
+            const cleanup = () => {
+                opt1Btn.removeEventListener("click", handler1);
+                opt2Btn.removeEventListener("click", handler2);
+                opt3Btn.removeEventListener("click", handler3);
+            };
+            const handler1 = () => { modal.classList.remove("active"); cleanup(); resolve(1); };
+            const handler2 = () => { modal.classList.remove("active"); cleanup(); resolve(2); };
+            const handler3 = () => { modal.classList.remove("active"); cleanup(); resolve(3); };
+            opt1Btn.addEventListener("click", handler1);
+            opt2Btn.addEventListener("click", handler2);
+            opt3Btn.addEventListener("click", handler3);
+        });
+    }
+    
+    // 以下为原有功能适配 current 变量
+    const DEFAULT_STATUSES = [
+        { name: "出勤", color: "#2ecc71", deletable: false },
+        { name: "迟到", color: "#f39c12", deletable: false },
+        { name: "早退", color: "#f1c40f", deletable: false },
+        { name: "旷工", color: "#e74c3c", deletable: false },
+        { name: "请假", color: "#2980b9", deletable: false },
+        { name: "半天假", color: "#3498db", deletable: false },
+        { name: "休假", color: "#f1c40f", deletable: false }
+    ];
+    const UNKNOWN_STATUS = { name: "不明", color: "#95a5a6", deletable: false };
+    
+    function getStatusColor(statusName) {
+        if (statusName === "不明") return UNKNOWN_STATUS.color;
+        const def = DEFAULT_STATUSES.find(s => s.name === statusName);
+        if (def) return def.color;
+        const cust = currentCustomStatuses.find(s => s.name === statusName);
+        return cust ? cust.color : "#95a5a6";
+    }
+    function rebuildSelects() {
+        const optionsList = [...DEFAULT_STATUSES, ...currentCustomStatuses];
+        const buildOptions = () => optionsList.map(s => `<option value="${s.name}" style="color:${s.color}">${s.name}</option>`).join('');
+        document.getElementById("mainStatus").innerHTML = buildOptions();
+        document.getElementById("batchStatusSelect").innerHTML = buildOptions();
+        const onlyViewStatus = document.getElementById("onlyViewStatus");
+        if (onlyViewStatus) onlyViewStatus.innerHTML = `<option value="">-- 请选择 --</option>` + optionsList.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    }
+    function renderCustomStatusList() {
+        const container = document.getElementById("customStatusList");
+        if (!container) return;
+        container.innerHTML = currentCustomStatuses.map(cs => `<div class="status-chip"><span class="color-dot" style="background:${cs.color}"></span><span>${cs.name}</span><button class="delete-status" data-name="${cs.name}"><i class="fas fa-trash-alt"></i></button></div>`).join('');
+        document.querySelectorAll(".delete-status").forEach(btn => btn.addEventListener("click", async (e) => {
+            const name = btn.getAttribute("data-name");
+            await deleteCustomStatus(name);
+        }));
+        if (accounts.length > 0 && mergeView) {
+            document.querySelectorAll('.delete-status').forEach(btn => {
+                btn.style.pointerEvents = 'none';
+                btn.style.opacity = '0.5';
+            });
+        }
+    }
+    async function deleteCustomStatus(name) {
+        if (!currentCustomStatuses.some(s => s.name === name)) return;
+        if (!await showConfirm(`删除自定义状态“${name}”，所有使用该状态的记录将变为“不明”，确定删除吗？`)) return;
+        recordAndExecute(() => {
+            const idx = currentCustomStatuses.findIndex(s => s.name === name);
+            if (idx !== -1) currentCustomStatuses.splice(idx, 1);
+            for (let date in currentAttendanceDB) if (currentAttendanceDB[date].mainStatus === name) currentAttendanceDB[date].mainStatus = "不明";
+        });
+        showToast(`已删除状态“${name}”`, 1800);
+    }
+    async function addCustomStatus() {
+        const nameInput = document.getElementById("newStatusName"), colorInput = document.getElementById("newStatusColor");
+        let newName = nameInput.value.trim();
+        if (!newName) { showToast("请输入状态名称", 1200); return; }
+        const allNames = [...DEFAULT_STATUSES.map(d => d.name), ...currentCustomStatuses.map(c => c.name), "不明"];
+        if (allNames.includes(newName)) { showToast("状态名称已存在", 1200); return; }
+        const newColor = colorInput.value;
+        recordAndExecute(() => { currentCustomStatuses.push({ name: newName, color: newColor }); });
+        nameInput.value = "";
+        showToast(`已添加自定义状态“${newName}”`, 1200);
+    }
+    
+    // 图表范围控制
+    let currentChartFilter = { type: 'month', value: null };
+    let currentCustomMonth = null, currentCustomYear = null;
+    let pieChart = null, barChart = null;
+    let examplePieChart = null, exampleBarChart = null;
+    
+    function getFilteredRecordsByRange() {
+        const now = new Date(); const currentYear = now.getFullYear(); const currentMonth = String(now.getMonth()+1).padStart(2,'0');
+        let startDate = null, endDate = null, rangeLabel = "";
+        switch (currentChartFilter.type) {
+            case 'month': startDate = `${currentYear}-${currentMonth}-01`; endDate = `${currentYear}-${currentMonth}-${new Date(currentYear, now.getMonth()+1, 0).getDate()}`; rangeLabel = `${currentYear}年${currentMonth}月`; break;
+            case 'lastMonth': let prevMonthDate = new Date(currentYear, now.getMonth(), 0); let prevYear = prevMonthDate.getFullYear(); let prevMonth = String(prevMonthDate.getMonth()+1).padStart(2,'0'); startDate = `${prevYear}-${prevMonth}-01`; endDate = `${prevYear}-${prevMonth}-${prevMonthDate.getDate()}`; rangeLabel = `${prevYear}年${prevMonth}月`; break;
+            case 'year': startDate = `${currentYear}-01-01`; endDate = `${currentYear}-12-31`; rangeLabel = `${currentYear}年`; break;
+            case 'lastYear': startDate = `${currentYear-1}-01-01`; endDate = `${currentYear-1}-12-31`; rangeLabel = `${currentYear-1}年`; break;
+            case 'all': startDate = null; endDate = null; rangeLabel = "全部历史"; break;
+            case 'customMonth': if (currentCustomMonth) { const [y,m] = currentCustomMonth.split('-'); const lastDay = new Date(parseInt(y), parseInt(m), 0).getDate(); startDate = `${y}-${m}-01`; endDate = `${y}-${m}-${lastDay}`; rangeLabel = `${y}年${m}月`; } else { startDate = null; endDate = null; rangeLabel = "未选择"; } break;
+            case 'customYear': if (currentCustomYear) { startDate = `${currentCustomYear}-01-01`; endDate = `${currentCustomYear}-12-31`; rangeLabel = `${currentCustomYear}年`; } else { startDate = null; endDate = null; rangeLabel = "未选择"; } break;
+        }
+        document.getElementById("currentRangeLabel").innerText = `当前：${rangeLabel}`;
+        document.getElementById("tableRangeHint").innerText = `（${rangeLabel}）`;
+        if (!startDate || !endDate) return currentAttendanceDB;
+        const filtered = {}; for (let date in currentAttendanceDB) if (date >= startDate && date <= endDate) filtered[date] = currentAttendanceDB[date];
+        return filtered;
+    }
+    function updatePieChartWithLegend() {
+        const filteredDB = getFilteredRecordsByRange();
+        let rawCount = {};
+        [...DEFAULT_STATUSES, ...currentCustomStatuses, UNKNOWN_STATUS].forEach(s => rawCount[s.name] = 0);
+        let overtimeTotal = 0;
+        for (let date in filteredDB) {
+            const rec = filteredDB[date];
+            let statName = rec.mainStatus;
+            if (!rawCount.hasOwnProperty(statName)) rawCount[statName] = 0;
+            rawCount[statName]++;
+            if (rec.overtime === true) overtimeTotal++;
+        }
+        const filteredEntries = Object.entries(rawCount).filter(([_, count]) => count > 0);
+        const labels = filteredEntries.map(([name]) => name);
+        const dataValues = labels.map(l => rawCount[l]);
+        const bgColors = labels.map(l => getStatusColor(l));
+        const total = dataValues.reduce((a,b)=>a+b,0);
+        if (pieChart) pieChart.destroy();
+        const ctx = document.getElementById("pieChartCanvas").getContext("2d");
+        pieChart = new Chart(ctx, { type: 'pie', data: { labels, datasets: [{ data: dataValues, backgroundColor: bgColors, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw}天 (${((ctx.raw/total)*100).toFixed(1)}%)` } }, legend: { display: false } } } });
+        const legendDiv = document.getElementById("pieLegend");
+        if (legendDiv) legendDiv.innerHTML = labels.map((label, idx) => `<div class="legend-item"><div class="legend-color" style="background:${bgColors[idx]}"></div><div class="legend-label">${label}</div><div class="legend-percent">${total===0?0:((dataValues[idx]/total)*100).toFixed(1)}%</div></div>`).join('');
+        document.getElementById("totalOvertimeSpan").innerText = overtimeTotal;
+        return overtimeTotal;
+    }
+    function updateBarChart() {
+        const filteredDB = getFilteredRecordsByRange();
+        let rawCount = {};
+        [...DEFAULT_STATUSES, ...currentCustomStatuses, UNKNOWN_STATUS].forEach(s => rawCount[s.name] = 0);
+        for (let date in filteredDB) {
+            const rec = filteredDB[date];
+            let statName = rec.mainStatus;
+            if (!rawCount.hasOwnProperty(statName)) rawCount[statName] = 0;
+            rawCount[statName]++;
+        }
+        const filteredEntries = Object.entries(rawCount).filter(([_, count]) => count > 0);
+        const labels = filteredEntries.map(([name]) => name);
+        const dataValues = labels.map(l => rawCount[l]);
+        const bgColors = labels.map(l => getStatusColor(l));
+        if (barChart) barChart.destroy();
+        const barCtx = document.getElementById("barChartCanvas").getContext("2d");
+        const isSingle = dataValues.length === 1;
+        barChart = new Chart(barCtx, { type: 'bar', data: { labels, datasets: [{ label: '天数', data: dataValues, backgroundColor: bgColors, borderRadius: 6, barPercentage: isSingle ? 0.4 : 0.6, categoryPercentage: isSingle ? 0.6 : 0.8 }] }, options: { responsive: true, maintainAspectRatio: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw}天` } } } } });
+    }
+    function updateAllCharts() { updatePieChartWithLegend(); updateBarChart(); }
+    
+    let currentSelectedDates = new Set();
+    function renderRecordsTableByRange() {
+        const filteredDB = getFilteredRecordsByRange();
+        let allDates = Object.keys(filteredDB).sort();
+        const tbody = document.getElementById("recordsTbody");
+        if (allDates.length === 0) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">📭 当前范围内暂无记录</td></tr>'; updateSelectedCountAndUI(); return; }
+        let html = "";
+        const isReadonly = (accounts.length > 0 && mergeView);
+        for (let date of allDates) {
+            const rec = filteredDB[date];
+            const isChecked = currentSelectedDates.has(date) ? "checked" : "";
+            const overtimeSpan = rec.overtime ? '<span class="overtime-badge-small"><i class="fas fa-plus-circle"></i> 加班</span>' : '';
+            const statusColor = getStatusColor(rec.mainStatus);
+            const holidayOvertime = (rec.mainStatus === "休假" && rec.overtime === true);
+            const badgeClass = holidayOvertime ? "status-badge holiday-overtime" : "status-badge";
+            let accountDisplay = '';
+            if (isReadonly && rec.sourceAccountId) {
+                const acc = accounts.find(a => a.id === rec.sourceAccountId);
+                if (acc) accountDisplay = `${escapeHtml(acc.name)} (${escapeHtml(acc.position)})`;
+                else accountDisplay = '未知账号';
+            }
+            if (isReadonly) {
+                html += `<tr>
+                            <td style="text-align:center"></td>
+                            <td><strong>${date}</strong></td>
+                            <td><span class="${badgeClass}"><span class="color-dot-small" style="background:${statusColor}"></span>${rec.mainStatus}</span> ${overtimeSpan}</td>
+                            <td>${rec.overtime ? '<i class="fas fa-check-circle" style="color:#e68a2e;"></i> 是' : '—'}</td>
+                            <td>${accountDisplay}</td>
+                            <td><span style="color:#aaa;">只读</span></td>
+                          </tr>`;
+            } else {
+                html += `<tr>
+                            <td style="text-align:center"><input type="checkbox" class="row-checkbox" data-date="${date}" ${isChecked}></td>
+                            <td><strong>${date}</strong></td>
+                            <td><span class="${badgeClass}"><span class="color-dot-small" style="background:${statusColor}"></span>${rec.mainStatus}</span> ${overtimeSpan}</td>
+                            <td>${rec.overtime ? '<i class="fas fa-check-circle" style="color:#e68a2e;"></i> 是' : '—'}</td>
+                            <td>—</td>
+                            <td class="action-icons"><i class="fas fa-edit" data-date="${date}"></i> <i class="fas fa-trash-alt" data-date="${date}"></i> <i class="fas fa-comment" data-date="${date}"></i></td>
+                          </tr>`;
+            }
+        }
+        tbody.innerHTML = html;
+        if (!isReadonly) bindTableEvents();
+        updateSelectedCountAndUI();
+    }
+    function bindTableEvents() {
+        document.querySelectorAll(".row-checkbox").forEach(cb => cb.addEventListener("change", (e) => { const date = cb.getAttribute("data-date"); if (cb.checked) currentSelectedDates.add(date); else currentSelectedDates.delete(date); updateSelectedCountAndUI(); }));
+        document.querySelectorAll(".fa-edit").forEach(icon => icon.addEventListener("click", (e) => { const date = icon.getAttribute("data-date"); enterEditMode(date); }));
+        document.querySelectorAll(".fa-trash-alt").forEach(icon => icon.addEventListener("click", async (e) => { const date = icon.getAttribute("data-date"); await deleteSingleRecord(date); }));
+        document.querySelectorAll(".fa-comment").forEach(icon => {
+            const date = icon.getAttribute("data-date");
+            icon.addEventListener("click", (e) => { e.stopPropagation(); openRemarkModal(date); });
+            icon.addEventListener("dblclick", (e) => { e.stopPropagation(); showRemark(date); });
+        });
+    }
+    function updateSelectedCountAndUI() {
+        const count = currentSelectedDates.size;
+        document.getElementById("selectedCountSpan").innerText = `${count}条选中`;
+        const total = document.querySelectorAll(".row-checkbox").length;
+        const selectAll = document.getElementById("selectAllCheckbox");
+        if (total > 0 && count === total) selectAll.checked = true;
+        else if (count === 0) selectAll.checked = false;
+        else selectAll.indeterminate = true;
+    }
+    async function deleteSingleRecord(date) { if (!currentAttendanceDB[date]) return; if (await showConfirm(`删除 ${date} 的记录？`)) { recordAndExecute(() => { delete currentAttendanceDB[date]; }); if (currentSelectedDates.has(date)) currentSelectedDates.delete(date); showToast("已删除", 1000); } }
+    function saveRecord() {
+        let dateInput = document.getElementById("recordDate").value;
+        if (!dateInput) { showToast("请选择日期", 1000); return; }
+        const mainStatus = document.getElementById("mainStatus").value;
+        const overtime = document.getElementById("overtimeCheckbox").checked;
+        let targetDate = dateInput;
+        if (currentEditDate !== null) { targetDate = currentEditDate; if (targetDate !== dateInput) { showToast("编辑模式下日期不可更改", 1200); return; } }
+        recordAndExecute(() => { if (!currentAttendanceDB[targetDate]) currentAttendanceDB[targetDate] = {}; currentAttendanceDB[targetDate].mainStatus = mainStatus; currentAttendanceDB[targetDate].overtime = overtime; });
+        exitEditMode(); showToast(`✓ 已保存 ${targetDate}`, 1200);
+    }
+    let currentEditDate = null;
+    function enterEditMode(date) { const rec = currentAttendanceDB[date]; if (!rec) return; currentEditDate = date; document.getElementById("recordDate").value = date; document.getElementById("recordDate").disabled = true; document.getElementById("mainStatus").value = rec.mainStatus; document.getElementById("overtimeCheckbox").checked = rec.overtime; document.getElementById("saveRecordBtn").innerHTML = '<i class="fas fa-pen-fancy"></i> 更新记录'; document.getElementById("cancelEditBtn").style.display = "inline-flex"; document.querySelector(".form-card").style.border = "2px solid #ffb347"; }
+    function exitEditMode() { currentEditDate = null; document.getElementById("recordDate").disabled = false; document.getElementById("saveRecordBtn").innerHTML = '<i class="fas fa-save"></i> 保存记录'; document.getElementById("cancelEditBtn").style.display = "none"; document.querySelector(".form-card").style.border = ""; resetForm(); }
+    function resetForm() { if (!currentEditDate) { document.getElementById("recordDate").value = new Date().toISOString().slice(0,10); document.getElementById("mainStatus").value = "出勤"; document.getElementById("overtimeCheckbox").checked = false; } }
+    function batchAddRecords() {
+        let start = document.getElementById("batchStartDate").value, end = document.getElementById("batchEndDate").value;
+        if (!start || !end) { showToast("请选择起止日期", 1200); return; }
+        if (start > end) { showToast("起始日期不能大于结束", 1200); return; }
+        const batchStatus = document.getElementById("batchStatusSelect").value;
+        const batchOvertime = document.getElementById("batchOvertime").checked;
+        let dates = [], cur = new Date(start), ed = new Date(end);
+        while (cur <= ed) { let yyyy = cur.getFullYear(), mm = String(cur.getMonth()+1).padStart(2,'0'), dd = String(cur.getDate()).padStart(2,'0'); dates.push(`${yyyy}-${mm}-${dd}`); cur.setDate(cur.getDate()+1); }
+        recordAndExecute(() => { for (let d of dates) { if (!currentAttendanceDB[d]) currentAttendanceDB[d] = {}; currentAttendanceDB[d].mainStatus = batchStatus; currentAttendanceDB[d].overtime = batchOvertime; } });
+        showToast(`批量处理 ${dates.length} 条`, 1500);
+    }
+    async function clearAllRecords() { if (Object.keys(currentAttendanceDB).length === 0) return; if (await showConfirm("⚠️ 清空所有记录，不可恢复！")) { recordAndExecute(() => { for (let date in currentAttendanceDB) delete currentAttendanceDB[date]; currentSelectedDates.clear(); }); showToast("已清空", 1200); } }
+    async function batchDeleteSelected() { if (currentSelectedDates.size === 0) { showToast("未选中记录", 1000); return; } if (await showConfirm(`删除 ${currentSelectedDates.size} 条记录?`)) { const toDelete = Array.from(currentSelectedDates); recordAndExecute(() => { for (let date of toDelete) delete currentAttendanceDB[date]; currentSelectedDates.clear(); }); showToast("批量删除完成", 1200); } }
+    function toggleSelectAll() { const cbs = document.querySelectorAll(".row-checkbox"); const should = !document.getElementById("selectAllCheckbox").checked; cbs.forEach(cb => { const date = cb.getAttribute("data-date"); if (should) { cb.checked=true; currentSelectedDates.add(date); } else { cb.checked=false; currentSelectedDates.delete(date); } }); document.getElementById("selectAllCheckbox").checked = should; updateSelectedCountAndUI(); }
+    
+    function initChartRangeControls() {
+        const rangeType = document.getElementById("chartRangeType"), customMonthGroup = document.getElementById("customMonthGroup"), customYearGroup = document.getElementById("customYearGroup"), customMonthInput = document.getElementById("customMonthInput"), customYearInput = document.getElementById("customYearInput"), applyMonthBtn = document.getElementById("applyCustomMonthBtn"), applyYearBtn = document.getElementById("applyCustomYearBtn");
+        function updateVisibility() { const type = rangeType.value; customMonthGroup.style.display = type === "customMonth" ? "flex" : "none"; customYearGroup.style.display = type === "customYear" ? "flex" : "none"; }
+        function setRangeAndRefresh(type, value = null) { currentChartFilter.type = type; if (type === "customMonth") { if (value) currentCustomMonth = value; else if (!currentCustomMonth) { const now = new Date(); currentCustomMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`; } customMonthInput.value = currentCustomMonth; } else if (type === "customYear") { if (value) currentCustomYear = value; else if (!currentCustomYear) currentCustomYear = new Date().getFullYear(); customYearInput.value = currentCustomYear; } updateAllChartsAndTable(); updateVisibility(); }
+        rangeType.addEventListener("change", () => { const newType = rangeType.value; if (newType === "customMonth") { if (!currentCustomMonth) { const now = new Date(); currentCustomMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`; } customMonthInput.value = currentCustomMonth; setRangeAndRefresh("customMonth", currentCustomMonth); } else if (newType === "customYear") { if (!currentCustomYear) currentCustomYear = new Date().getFullYear(); customYearInput.value = currentCustomYear; setRangeAndRefresh("customYear", currentCustomYear); } else { setRangeAndRefresh(newType); } });
+        applyMonthBtn.addEventListener("click", () => { const val = customMonthInput.value; if (val) { currentCustomMonth = val; setRangeAndRefresh("customMonth", val); } else showToast("请选择有效的年月", 1000); });
+        applyYearBtn.addEventListener("click", () => { const val = customYearInput.value; if (val && !isNaN(parseInt(val))) { currentCustomYear = parseInt(val); setRangeAndRefresh("customYear", currentCustomYear); } else showToast("请输入有效的年份", 1000); });
+        setRangeAndRefresh("month");
+    }
+    function updateAllChartsAndTable() { updateAllCharts(); renderRecordsTableByRange(); }
+    
+    function showOnlyViewModal() { rebuildSelects(); document.getElementById("onlyViewModal").classList.add("active"); onOnlyViewTypeChange(); }
+    function onOnlyViewTypeChange() { const type = document.getElementById("onlyViewType").value; const statusGroup = document.getElementById("statusSelectGroup"); statusGroup.style.display = type === "status" ? "block" : "none"; if (type === "status") { const selectedStatus = document.getElementById("onlyViewStatus").value; if (selectedStatus) updateOnlyViewResult(selectedStatus, false); } else { updateOnlyViewResult(null, true); } }
+    function updateOnlyViewResult(statusName, onlyOvertime) { const filteredDB = getFilteredRecordsByRange(); let total = 0, dates = []; if (onlyOvertime) { for (let [date, rec] of Object.entries(filteredDB)) if (rec.overtime === true) { total++; dates.push(date); } } else { if (!statusName) return; for (let [date, rec] of Object.entries(filteredDB)) if (rec.mainStatus === statusName) { total++; dates.push(date); } } document.getElementById("onlyViewTotal").innerText = total; const container = document.getElementById("onlyViewDateList"); if (dates.length === 0) container.innerHTML = "<span>无记录</span>"; else container.innerHTML = dates.sort().map(d => `<span>${d}</span>`).join(''); }
+    function closeOnlyViewModal() { document.getElementById("onlyViewModal").classList.remove("active"); }
+    
+    function showExampleModal() {
+        const exampleData = { "2026-03-01": { mainStatus: "出勤", overtime: false }, "2026-03-02": { mainStatus: "出勤", overtime: true }, "2026-03-03": { mainStatus: "迟到", overtime: false }, "2026-03-04": { mainStatus: "请假", overtime: false }, "2026-03-05": { mainStatus: "半天假", overtime: true }, "2026-03-06": { mainStatus: "休假", overtime: true }, "2026-03-07": { mainStatus: "旷工", overtime: false } };
+        const exampleStatusCount = { "出勤":2, "迟到":1, "请假":1, "半天假":1, "休假":1, "旷工":1 };
+        const labels = Object.keys(exampleStatusCount); const vals = labels.map(l => exampleStatusCount[l]); const colors = labels.map(l => getStatusColor(l));
+        if (examplePieChart) examplePieChart.destroy(); const pieCtx = document.getElementById("examplePieCanvas").getContext("2d"); examplePieChart = new Chart(pieCtx, { type: 'pie', data: { labels, datasets: [{ data: vals, backgroundColor: colors }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw}天` } } } } });
+        if (exampleBarChart) exampleBarChart.destroy(); const barCtx = document.getElementById("exampleBarCanvas").getContext("2d"); exampleBarChart = new Chart(barCtx, { type: 'bar', data: { labels, datasets: [{ label: '天数', data: vals, backgroundColor: colors }] }, options: { responsive: true } });
+        const tbody = document.getElementById("exampleTableBody"); tbody.innerHTML = Object.entries(exampleData).map(([d, rec]) => `<tr><td>${d}</td><td>${rec.mainStatus}</td><td>${rec.overtime ? "是" : "否"}</td></tr>`).join('');
+        document.getElementById("exampleModal").classList.add("active");
+    }
+    function closeExampleModal() { document.getElementById("exampleModal").classList.remove("active"); }
+    function showHelpModal() { document.getElementById("helpModal").classList.add("active"); }
+    function closeHelpModal() { document.getElementById("helpModal").classList.remove("active"); }
+    
+    let activePopup = null;
+    function showSavePopup(targetElement, chartCardElement, fileName) { if (activePopup) activePopup.remove(); const rect = targetElement.getBoundingClientRect(); const popup = document.createElement('div'); popup.className = 'save-chart-popup'; popup.style.top = rect.bottom + 5 + 'px'; popup.style.left = rect.left + 'px'; popup.innerHTML = `<button class="save-btn">保存为图片</button><button class="cancel-btn">取消</button>`; document.body.appendChild(popup); activePopup = popup; const saveBtn = popup.querySelector('.save-btn'), cancelBtn = popup.querySelector('.cancel-btn'); saveBtn.addEventListener('click', async () => { try { const canvas = await html2canvas(chartCardElement, { scale: 2, backgroundColor: '#ffffff' }); const link = document.createElement('a'); link.download = fileName; link.href = canvas.toDataURL(); link.click(); showToast("图表已保存", 1000); } catch (err) { showToast("保存失败", 1000); } popup.remove(); activePopup = null; }); cancelBtn.addEventListener('click', () => { popup.remove(); activePopup = null; }); const closeHandler = (e) => { if (!popup.contains(e.target)) { popup.remove(); activePopup = null; document.removeEventListener('click', closeHandler); } }; setTimeout(() => document.addEventListener('click', closeHandler), 100); }
+    function enableLongPressSave(elementId, chartCardId, fileName) { const el = document.getElementById(elementId); const card = document.getElementById(chartCardId); if (!el || !card) return; let timer = null; el.addEventListener('touchstart', (e) => { timer = setTimeout(() => { showSavePopup(el, card, fileName); }, 500); e.preventDefault(); }); el.addEventListener('touchend', () => { clearTimeout(timer); }); el.addEventListener('touchmove', () => { clearTimeout(timer); }); }
+    function enableContextMenuSave(elementId, chartCardId, fileName) { const el = document.getElementById(elementId); const card = document.getElementById(chartCardId); if (!el || !card) return; el.addEventListener('contextmenu', (e) => { e.preventDefault(); showSavePopup(el, card, fileName); }); }
+    
+    let currentRemarkDate = null;
+    function openRemarkModal(date) { currentRemarkDate = date; const remark = currentAttendanceDB[date]?.remark || ''; document.getElementById("remarkInput").value = remark; document.getElementById("remarkModal").classList.add("active"); }
+    function saveRemark() { if (currentRemarkDate && currentAttendanceDB[currentRemarkDate]) { const newRemark = document.getElementById("remarkInput").value; recordAndExecute(() => { currentAttendanceDB[currentRemarkDate].remark = newRemark; }); } closeRemarkModal(); }
+    function closeRemarkModal() { document.getElementById("remarkModal").classList.remove("active"); currentRemarkDate = null; }
+    function showRemark(date) { const remark = currentAttendanceDB[date]?.remark; if (remark) alert(`备注：${remark}`); else alert("暂无备注"); }
+    
+    function downloadJson(content, filename) { const blob = new Blob([content], { type: "application/json" }); const link = document.createElement("a"); const url = URL.createObjectURL(blob); link.href = url; link.download = filename; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); }
+    function showToast(msg, dur=1500) { const t=document.getElementById("toastContainer"); t.innerText=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),dur); }
+    function showConfirm(msg) { return new Promise(resolve=>{ const modal=document.getElementById("customModal"); document.getElementById("modalMessage").innerText=msg; modal.classList.add("active"); const confirm=()=>{ modal.classList.remove("active"); cleanup(); resolve(true); }; const cancel=()=>{ modal.classList.remove("active"); cleanup(); resolve(false); }; const cleanup=()=>{ confirmBtn.removeEventListener("click",confirm); cancelBtn.removeEventListener("click",cancel); }; const confirmBtn=document.getElementById("modalConfirmBtn"), cancelBtn=document.getElementById("modalCancelBtn"); confirmBtn.addEventListener("click",confirm,{once:true}); cancelBtn.addEventListener("click",cancel,{once:true}); modal.addEventListener("click",(e)=>{ if(e.target===modal) cancel(); },{once:true}); }); }
+    function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    
+    function init() {
+        loadFullState();
+        document.getElementById("accountBtn").addEventListener("click", openAccountModal);
+        document.getElementById("addAccountBtn").addEventListener("click", addAccount);
+        document.getElementById("closeAccountBtn").addEventListener("click", closeAccountModal);
+        document.getElementById("exportAllBtn").addEventListener("click", exportData);
+        document.getElementById("exportRangeBtn").addEventListener("click", showExportRangePanel);
+        document.getElementById("confirmRangeExportBtn").addEventListener("click", confirmRangeExport);
+        document.getElementById("cancelRangeExportBtn").addEventListener("click", hideExportRangePanel);
+        document.getElementById("importBtn").addEventListener("click", importData);
+        document.getElementById("undoBtn").addEventListener("click", undo);
+        document.getElementById("accountSelector").addEventListener("change", (e) => {
+            const val = e.target.value;
+            if (val === "merge") { mergeView = true; currentAccountId = null; }
+            else { mergeView = false; currentAccountId = val; }
+            saveFullState();
+            applyCurrentView();
+        });
+        document.getElementById("saveRecordBtn").addEventListener("click", saveRecord);
+        document.getElementById("cancelEditBtn").addEventListener("click", exitEditMode);
+        document.getElementById("batchAddBtn").addEventListener("click", batchAddRecords);
+        document.getElementById("clearAllBtn").addEventListener("click", clearAllRecords);
+        document.getElementById("selectAllCheckbox").addEventListener("change", toggleSelectAll);
+        document.getElementById("batchDeleteBtn").addEventListener("click", batchDeleteSelected);
+        document.getElementById("addCustomStatusBtn").addEventListener("click", addCustomStatus);
+        document.getElementById("openExampleModalBtn").addEventListener("click", showExampleModal);
+        document.getElementById("closeExampleModalBtn").addEventListener("click", closeExampleModal);
+        document.getElementById("helpBtn").addEventListener("click", showHelpModal);
+        document.getElementById("closeHelpBtn").addEventListener("click", closeHelpModal);
+        document.getElementById("onlyViewBtn").addEventListener("click", showOnlyViewModal);
+        document.getElementById("closeOnlyViewBtn").addEventListener("click", closeOnlyViewModal);
+        document.getElementById("onlyViewType").addEventListener("change", onOnlyViewTypeChange);
+        document.getElementById("onlyViewStatus").addEventListener("change", (e) => { if (document.getElementById("onlyViewType").value === "status") updateOnlyViewResult(e.target.value, false); });
+        document.getElementById("saveRemarkBtn").addEventListener("click", saveRemark);
+        document.getElementById("closeRemarkBtn").addEventListener("click", closeRemarkModal);
+        const exampleModal = document.getElementById("exampleModal"); exampleModal.addEventListener("click", (e) => { if (e.target === exampleModal) closeExampleModal(); });
+        const helpModal = document.getElementById("helpModal"); helpModal.addEventListener("click", (e) => { if (e.target === helpModal) closeHelpModal(); });
+        const onlyViewModal = document.getElementById("onlyViewModal"); onlyViewModal.addEventListener("click", (e) => { if (e.target === onlyViewModal) closeOnlyViewModal(); });
+        const remarkModal = document.getElementById("remarkModal"); remarkModal.addEventListener("click", (e) => { if (e.target === remarkModal) closeRemarkModal(); });
+        enableLongPressSave("pieChartCanvas", "pieChartCard", "pie_chart.png");
+        enableLongPressSave("barChartCanvas", "barChartCard", "bar_chart.png");
+        enableContextMenuSave("pieChartCanvas", "pieChartCard", "pie_chart.png");
+        enableContextMenuSave("barChartCanvas", "barChartCard", "bar_chart.png");
+        initChartRangeControls();
+        const today = new Date().toISOString().slice(0,10);
+        if (!document.getElementById("recordDate").value) document.getElementById("recordDate").value = today;
+        document.getElementById("batchStartDate").value = today;
+        let next = new Date(); next.setDate(next.getDate()+5); document.getElementById("batchEndDate").value = next.toISOString().slice(0,10);
+    }
+    init();
+</script>
+</body>
+</html>
